@@ -1,0 +1,204 @@
+==7343== Memcheck, a memory error detector
+==7343== Copyright (C) 2002-2015, and GNU GPL'd, by Julian Seward et al.
+==7343== Using Valgrind-3.11.0 and LibVEX; rerun with -h for copyright info
+==7343== Command: ./joint_pd_control
+==7343== Parent PID: 7330
+==7343== 
+--7343-- 
+--7343-- Valgrind options:
+--7343--    --leak-check=full
+--7343--    --show-leak-kinds=all
+--7343--    --track-origins=yes
+--7343--    --verbose
+--7343--    --log-file=valgrind-out.txt
+--7343-- Contents of /proc/version:
+--7343--   Linux version 4.19.89-sumantra-xenomai3-qdped-25th-march (root@sumantra94-HP-ZBook-Studio-G5) (gcc version 7.5.0 (Ubuntu 7.5.0-3ubuntu1~18.04)) #1 SMP Wed Mar 31 12:20:48 +08 2021
+--7343-- 
+--7343-- Arch and hwcaps: AMD64, LittleEndian, amd64-cx16-rdtscp-sse3
+--7343-- Page sizes: currently 4096, max supported 4096
+--7343-- Valgrind library directory: /usr/lib/valgrind
+--7343-- Reading syms from /home/qdped/Documents/qdped_v2_low_level/joint_pd_control
+--7343-- Reading syms from /lib/x86_64-linux-gnu/ld-2.23.so
+--7343--   Considering /lib/x86_64-linux-gnu/ld-2.23.so ..
+--7343--   .. CRC mismatch (computed d3da0723 wanted a1c29704)
+--7343--   Considering /usr/lib/debug/lib/x86_64-linux-gnu/ld-2.23.so ..
+--7343--   .. CRC is valid
+--7343-- Reading syms from /usr/lib/valgrind/memcheck-amd64-linux
+--7343--   Considering /usr/lib/valgrind/memcheck-amd64-linux ..
+--7343--   .. CRC mismatch (computed 2535049d wanted 2b024814)
+--7343--    object doesn't have a symbol table
+--7343--    object doesn't have a dynamic symbol table
+--7343-- Scheduler: using generic scheduler lock implementation.
+--7343-- Reading suppressions file: /usr/lib/valgrind/default.supp
+==7343== embedded gdbserver: reading from /tmp/vgdb-pipe-from-vgdb-to-7343-by-root-on-???
+==7343== embedded gdbserver: writing to   /tmp/vgdb-pipe-to-vgdb-from-7343-by-root-on-???
+==7343== embedded gdbserver: shared mem   /tmp/vgdb-pipe-shared-mem-vgdb-7343-by-root-on-???
+==7343== 
+==7343== TO CONTROL THIS PROCESS USING vgdb (which you probably
+==7343== don't want to do, unless you know exactly what you're doing,
+==7343== or are doing some strange experiment):
+==7343==   /usr/lib/valgrind/../../bin/vgdb --pid=7343 ...command...
+==7343== 
+==7343== TO DEBUG THIS PROCESS USING GDB: start GDB like this
+==7343==   /path/to/gdb ./joint_pd_control
+==7343== and then give GDB the following command
+==7343==   target remote | /usr/lib/valgrind/../../bin/vgdb --pid=7343
+==7343== --pid is optional if only one valgrind process is running
+==7343== 
+--7343-- REDIR: 0x401cdc0 (ld-linux-x86-64.so.2:strlen) redirected to 0x3809e181 (???)
+--7343-- Reading syms from /usr/lib/valgrind/vgpreload_core-amd64-linux.so
+--7343--   Considering /usr/lib/valgrind/vgpreload_core-amd64-linux.so ..
+--7343--   .. CRC mismatch (computed d0558d51 wanted ab599393)
+--7343--    object doesn't have a symbol table
+--7343-- Reading syms from /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so
+--7343--   Considering /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so ..
+--7343--   .. CRC mismatch (computed f5fca1b4 wanted 7dda00ad)
+--7343--    object doesn't have a symbol table
+==7343== WARNING: new redirection conflicts with existing -- ignoring it
+--7343--     old: 0x0401cdc0 (strlen              ) R-> (0000.0) 0x3809e181 ???
+--7343--     new: 0x0401cdc0 (strlen              ) R-> (2007.0) 0x04c31020 strlen
+--7343-- REDIR: 0x401b710 (ld-linux-x86-64.so.2:index) redirected to 0x4c30bc0 (index)
+--7343-- REDIR: 0x401b930 (ld-linux-x86-64.so.2:strcmp) redirected to 0x4c320d0 (strcmp)
+--7343-- REDIR: 0x401db20 (ld-linux-x86-64.so.2:mempcpy) redirected to 0x4c35270 (mempcpy)
+--7343-- Reading syms from /usr/lib/libcobalt.so.2.0.0
+--7343-- Reading syms from /usr/lib/libmodechk.so.0.0.0
+--7343-- Reading syms from /lib/x86_64-linux-gnu/libpthread-2.23.so
+--7343--   Considering /usr/lib/debug/.build-id/b7/7847cc9cacbca3b5753d0d25a32e5795afe75b.debug ..
+--7343--   .. build-id is valid
+--7343-- Reading syms from /lib/x86_64-linux-gnu/librt-2.23.so
+--7343--   Considering /lib/x86_64-linux-gnu/librt-2.23.so ..
+--7343--   .. CRC mismatch (computed 35f01245 wanted 48d8b4b7)
+--7343--   Considering /usr/lib/debug/lib/x86_64-linux-gnu/librt-2.23.so ..
+--7343--   .. CRC is valid
+--7343-- Reading syms from /usr/local/lib/liblcm.so.1.4.0
+--7343-- Reading syms from /lib/x86_64-linux-gnu/libglib-2.0.so.0.4800.0
+--7343--    object doesn't have a symbol table
+--7343-- Reading syms from /usr/lib/libpcanfd.so.8
+--7343-- Reading syms from /lib/x86_64-linux-gnu/libm-2.23.so
+--7343--   Considering /lib/x86_64-linux-gnu/libm-2.23.so ..
+--7343--   .. CRC mismatch (computed f7791cb7 wanted 92acf4be)
+--7343--   Considering /usr/lib/debug/lib/x86_64-linux-gnu/libm-2.23.so ..
+--7343--   .. CRC is valid
+--7343-- Reading syms from /lib/x86_64-linux-gnu/libc-2.23.so
+--7343--   Considering /lib/x86_64-linux-gnu/libc-2.23.so ..
+--7343--   .. CRC mismatch (computed 2adb2e50 wanted 9b73f606)
+--7343--   Considering /usr/lib/debug/lib/x86_64-linux-gnu/libc-2.23.so ..
+--7343--   .. CRC is valid
+--7343-- Reading syms from /lib/x86_64-linux-gnu/libpcre.so.3.13.2
+--7343--   Considering /lib/x86_64-linux-gnu/libpcre.so.3.13.2 ..
+--7343--   .. CRC mismatch (computed 276b70fd wanted 22183252)
+--7343--    object doesn't have a symbol table
+--7343-- REDIR: 0x6159fd0 (libc.so.6:strcasecmp) redirected to 0x4a286f0 (_vgnU_ifunc_wrapper)
+--7343-- REDIR: 0x6155850 (libc.so.6:strcspn) redirected to 0x4a286f0 (_vgnU_ifunc_wrapper)
+--7343-- REDIR: 0x615c2c0 (libc.so.6:strncasecmp) redirected to 0x4a286f0 (_vgnU_ifunc_wrapper)
+--7343-- REDIR: 0x6157cc0 (libc.so.6:strpbrk) redirected to 0x4a286f0 (_vgnU_ifunc_wrapper)
+--7343-- REDIR: 0x6158050 (libc.so.6:strspn) redirected to 0x4a286f0 (_vgnU_ifunc_wrapper)
+--7343-- REDIR: 0x615971b (libc.so.6:memcpy@GLIBC_2.2.5) redirected to 0x4a286f0 (_vgnU_ifunc_wrapper)
+--7343-- REDIR: 0x61560f0 (libc.so.6:strncmp) redirected to 0x4a286f0 (_vgnU_ifunc_wrapper)
+--7343-- REDIR: 0x6154050 (libc.so.6:index) redirected to 0x4a286f0 (_vgnU_ifunc_wrapper)
+--7343-- REDIR: 0x6159780 (libc.so.6:memset) redirected to 0x4a286f0 (_vgnU_ifunc_wrapper)
+--7343-- REDIR: 0x6159180 (libc.so.6:bcmp) redirected to 0x4a286f0 (_vgnU_ifunc_wrapper)
+--7343-- REDIR: 0x61542a0 (libc.so.6:strcmp) redirected to 0x4a286f0 (_vgnU_ifunc_wrapper)
+--7343-- REDIR: 0x61e0950 (libc.so.6:__memcpy_chk) redirected to 0x4a286f0 (_vgnU_ifunc_wrapper)
+--7343-- REDIR: 0x615e9c0 (libc.so.6:memcpy@@GLIBC_2.14) redirected to 0x4a286f0 (_vgnU_ifunc_wrapper)
+--7343-- REDIR: 0x61579d0 (libc.so.6:rindex) redirected to 0x4c308a0 (rindex)
+--7343-- REDIR: 0x614e550 (libc.so.6:malloc) redirected to 0x4c2db20 (malloc)
+--7343-- REDIR: 0x6155cf0 (libc.so.6:strlen) redirected to 0x4c30f60 (strlen)
+--7343-- REDIR: 0x615ea40 (libc.so.6:__GI_memcpy) redirected to 0x4c32b00 (__GI_memcpy)
+--7343-- REDIR: 0x6158630 (libc.so.6:__GI_strstr) redirected to 0x4c354d0 (__strstr_sse2)
+--7343-- REDIR: 0x614ea70 (libc.so.6:free) redirected to 0x4c2ed80 (free)
+--7343-- WARNING: unhandled amd64-linux syscall: 268435456
+==7343==    at 0x4E48C91: low_init (in /usr/lib/libcobalt.so.2.0.0)
+==7343==    by 0x4E48E8E: cobalt_init_2 (in /usr/lib/libcobalt.so.2.0.0)
+==7343==    by 0x4E48FE3: cobalt_init (in /usr/lib/libcobalt.so.2.0.0)
+==7343==    by 0x4E5339E: __xenomai_init (in /usr/lib/libcobalt.so.2.0.0)
+==7343==    by 0x4E53ADF: xenomai_init_dso (in /usr/lib/libcobalt.so.2.0.0)
+==7343==    by 0x5BBCBF1: xenomai_bootstrap (in /usr/lib/libpcanfd.so.8)
+==7343==    by 0x40104E9: call_init.part.0 (dl-init.c:72)
+==7343==    by 0x40105FA: call_init (dl-init.c:30)
+==7343==    by 0x40105FA: _dl_init (dl-init.c:120)
+==7343==    by 0x4000CF9: ??? (in /lib/x86_64-linux-gnu/ld-2.23.so)
+--7343-- You may be able to write your own handler.
+--7343-- Read the file README_MISSING_SYSCALL_OR_IOCTL.
+--7343-- Nevertheless we consider this a bug.  Please report
+--7343-- it at http://valgrind.org/support/bug_reports.html.
+--7343-- REDIR: 0x6160d30 (libc.so.6:strchrnul) redirected to 0x4c34da0 (strchrnul)
+--7343-- REDIR: 0x6159980 (libc.so.6:__GI_mempcpy) redirected to 0x4c34fa0 (__GI_mempcpy)
+==7343== 
+==7343== HEAP SUMMARY:
+==7343==     in use at exit: 1,607 bytes in 6 blocks
+==7343==   total heap usage: 9 allocs, 3 frees, 3,283 bytes allocated
+==7343== 
+==7343== Searching for pointers to 6 not-freed blocks
+==7343== Checked 151,872 bytes
+==7343== 
+==7343== 16 bytes in 1 blocks are still reachable in loss record 1 of 6
+==7343==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==7343==    by 0x5BBCB9A: xenomai_bootstrap (in /usr/lib/libpcanfd.so.8)
+==7343==    by 0x40104E9: call_init.part.0 (dl-init.c:72)
+==7343==    by 0x40105FA: call_init (dl-init.c:30)
+==7343==    by 0x40105FA: _dl_init (dl-init.c:120)
+==7343==    by 0x4000CF9: ??? (in /lib/x86_64-linux-gnu/ld-2.23.so)
+==7343== 
+==7343== 16 bytes in 1 blocks are still reachable in loss record 2 of 6
+==7343==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==7343==    by 0x4E5309D: __xenomai_init (in /usr/lib/libcobalt.so.2.0.0)
+==7343==    by 0x4E53ADF: xenomai_init_dso (in /usr/lib/libcobalt.so.2.0.0)
+==7343==    by 0x5BBCBF1: xenomai_bootstrap (in /usr/lib/libpcanfd.so.8)
+==7343==    by 0x40104E9: call_init.part.0 (dl-init.c:72)
+==7343==    by 0x40105FA: call_init (dl-init.c:30)
+==7343==    by 0x40105FA: _dl_init (dl-init.c:120)
+==7343==    by 0x4000CF9: ??? (in /lib/x86_64-linux-gnu/ld-2.23.so)
+==7343== 
+==7343== 19 bytes in 1 blocks are still reachable in loss record 3 of 6
+==7343==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==7343==    by 0x6155A59: strdup (strdup.c:42)
+==7343==    by 0x4E530D5: __xenomai_init (in /usr/lib/libcobalt.so.2.0.0)
+==7343==    by 0x4E53ADF: xenomai_init_dso (in /usr/lib/libcobalt.so.2.0.0)
+==7343==    by 0x5BBCBF1: xenomai_bootstrap (in /usr/lib/libpcanfd.so.8)
+==7343==    by 0x40104E9: call_init.part.0 (dl-init.c:72)
+==7343==    by 0x40105FA: call_init (dl-init.c:30)
+==7343==    by 0x40105FA: _dl_init (dl-init.c:120)
+==7343==    by 0x4000CF9: ??? (in /lib/x86_64-linux-gnu/ld-2.23.so)
+==7343== 
+==7343== 20 bytes in 1 blocks are still reachable in loss record 4 of 6
+==7343==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==7343==    by 0x61E3157: __vasprintf_chk (vasprintf_chk.c:80)
+==7343==    by 0x61E3031: __asprintf_chk (asprintf_chk.c:32)
+==7343==    by 0x4E5051C: ___panic (in /usr/lib/libcobalt.so.2.0.0)
+==7343==    by 0x4E50678: __panic (in /usr/lib/libcobalt.so.2.0.0)
+==7343==    by 0x4E48D8C: low_init (in /usr/lib/libcobalt.so.2.0.0)
+==7343==    by 0x4E48E8E: cobalt_init_2 (in /usr/lib/libcobalt.so.2.0.0)
+==7343==    by 0x4E48FE3: cobalt_init (in /usr/lib/libcobalt.so.2.0.0)
+==7343==    by 0x4E5339E: __xenomai_init (in /usr/lib/libcobalt.so.2.0.0)
+==7343==    by 0x4E53ADF: xenomai_init_dso (in /usr/lib/libcobalt.so.2.0.0)
+==7343==    by 0x5BBCBF1: xenomai_bootstrap (in /usr/lib/libpcanfd.so.8)
+==7343==    by 0x40104E9: call_init.part.0 (dl-init.c:72)
+==7343== 
+==7343== 512 bytes in 1 blocks are still reachable in loss record 5 of 6
+==7343==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==7343==    by 0x4E52FD5: __xenomai_init (in /usr/lib/libcobalt.so.2.0.0)
+==7343==    by 0x4E53ADF: xenomai_init_dso (in /usr/lib/libcobalt.so.2.0.0)
+==7343==    by 0x5BBCBF1: xenomai_bootstrap (in /usr/lib/libpcanfd.so.8)
+==7343==    by 0x40104E9: call_init.part.0 (dl-init.c:72)
+==7343==    by 0x40105FA: call_init (dl-init.c:30)
+==7343==    by 0x40105FA: _dl_init (dl-init.c:120)
+==7343==    by 0x4000CF9: ??? (in /lib/x86_64-linux-gnu/ld-2.23.so)
+==7343== 
+==7343== 1,024 bytes in 1 blocks are still reachable in loss record 6 of 6
+==7343==    at 0x4C2DB8F: malloc (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==7343==    by 0x5BBCACF: xenomai_bootstrap (in /usr/lib/libpcanfd.so.8)
+==7343==    by 0x40104E9: call_init.part.0 (dl-init.c:72)
+==7343==    by 0x40105FA: call_init (dl-init.c:30)
+==7343==    by 0x40105FA: _dl_init (dl-init.c:120)
+==7343==    by 0x4000CF9: ??? (in /lib/x86_64-linux-gnu/ld-2.23.so)
+==7343== 
+==7343== LEAK SUMMARY:
+==7343==    definitely lost: 0 bytes in 0 blocks
+==7343==    indirectly lost: 0 bytes in 0 blocks
+==7343==      possibly lost: 0 bytes in 0 blocks
+==7343==    still reachable: 1,607 bytes in 6 blocks
+==7343==         suppressed: 0 bytes in 0 blocks
+==7343== 
+==7343== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)
+==7343== ERROR SUMMARY: 0 errors from 0 contexts (suppressed: 0 from 0)

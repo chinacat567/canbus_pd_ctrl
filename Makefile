@@ -8,7 +8,7 @@ LDFLAGS=`pkg-config --libs lcm`
 skin_1 = alchemy
 skin_2 = posix
 CC := $(shell xeno-config --cc) 
-CFLAGS := $(shell xeno-config --skin=$(skin_2) --cflags) $(CFLAGS)  
+CFLAGS := $(shell xeno-config --skin=$(skin_2) --cflags) $(CFLAGS) -fno-stack-protector
 LDFLAGS := $(shell xeno-config --skin=$(skin_2) --ldflags) $(LDFLAGS) -lpcanfd -lm
 ifdef CAN_WRITE
 CFLAGS += -DCAN_WRITE 

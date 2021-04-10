@@ -47,7 +47,7 @@
  #define KP_MIN 0.0f
  #define KP_MAX 100.0f
  #define KD_MIN 0.0f
- #define KD_MAX 10.0f
+ #define KD_MAX 100.0f
  #define T_MIN -15.0f
  #define T_MAX 15.0f
  
@@ -65,6 +65,11 @@
 #define MAX_READ 35
 #define MAX_READ_IMU 10
 
+    union float_bytes {
+    float fval;
+    uint32_t ival;
+    uint8_t bvals[4];
+};
 
 struct period_info {
   struct timespec next_period;
@@ -113,7 +118,7 @@ struct rt_task_args{
   /* for storing setpoints in PCAN driver format */
   struct setpoint_can_msgs setpoint_msgs;
   /* for storing SPI commands*/
-  spi_command_t *setpoints;
+  spi_command_t setpoints;
   spi_data_t leg_data;
   /* for storing setpoints leg-wise*/
   struct motor_torq_cmd motor_torq_setpoints;
@@ -144,8 +149,7 @@ struct imu_rt_task_args{
   /* ovrruns in the RT task*/
   // char* imu_data_msg_buf;
   unsigned long overruns;
-  /* flag for  while loop*/
-  int isRunning_rt;
+ 
 
 };
 
@@ -156,10 +160,10 @@ const char* devname_data = "/dev/rtp0";
 const char* devname_cmd = "/dev/rtp1";
 const char* devname_imu = "/dev/rtp2";
 const char* devname_status = "/dev/rtp3";
-static volatile sig_atomic_t isRunning = 1;
+
 
 /*for normalizing the zero positions*/
-float offset_hip[4] = {PI/2, -PI/2, PI/2, -PI/2};
+float offset_hip[4] = {-PI/2, PI/2, -PI/2, PI/2};
 float offset_knee[4] = {PI, -PI, PI, -PI};
 
 // float offset_hip[4] = {0,0,0,0,};
@@ -174,3 +178,5 @@ int status = 0;
 // RT_MUTEX mutex;
 pthread_mutex_t mutex;
 pthread_mutexattr_t attr;
+int isRunning = 1;
+

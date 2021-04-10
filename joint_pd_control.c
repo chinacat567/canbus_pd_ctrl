@@ -1,11 +1,35 @@
 /*sumantra sharma 25th March 2021*/
 /* 28th March - added mutex locks between LCM and RT thread*/
 /* 29th March - mutex sharing between RT and non RT not possible. Use msg pipes instead*/
+/* 8th April - moved to pthreads (posix skin) from alchemy */
 #include "joint_pd_control.h"
 
 //Given a register value and a Q point, convert to float
 //See https://en.wikipedia.org/wiki/Q_(number_format)
+float bytes_to_float(const uint8_t *byte_array)
+{
+    char float_byte_array[4];
+    float retval;
 
+    float_byte_array[0] = byte_array[0];
+    float_byte_array[1] = byte_array[1];
+    float_byte_array[2] = byte_array[2];
+    float_byte_array[3] = byte_array[3];
+
+    memcpy(&retval, float_byte_array, 4);
+
+    return retval;
+}
+
+uint16_t bytes_to_uint16(const uint8_t *byte_array)
+{
+	    char uint_byte_array[2];
+	    uint16_t retval;
+	    uint_byte_array[0] = byte_array[0];
+	    uint_byte_array[1] = byte_array[1];
+
+
+}
 
 
 static void inc_period(struct period_info *pinfo)	
@@ -53,14 +77,14 @@ void print_spi_command(spi_command_t* msg)
 		rt_printf("q_des_knee[%d] = %f\n",i, msg->q_des_knee[i]);
 		// rt_printf("qd_des_knee[%d] = %f\n",i, msg->qd_des_knee[i]);
 		rt_printf("kp_knee[%d] = %f\n",i, msg->kp_knee[i]);
-		// rt_printf("kd_knee[%d] = %f\n",i, msg->kd_knee[i]);
+		rt_printf("kd_knee[%d] = %f\n",i, msg->kd_knee[i]);
 		// rt_printf("tau_ff_knee[%d] = %f\n",i, msg->tau_knee_ff[i]);
 
 		// rt_printf("Hip setpoints:\n");
-		// rt_printf("q_des_hip[%d] = %f\n",i,  msg->q_des_hip[i]);
+		rt_printf("q_des_hip[%d] = %f\n",i,  msg->q_des_hip[i]);
 		// rt_printf("qd_des_hip[%d] = %f\n",i,  msg->qd_des_hip[i]);
-		// rt_printf("kp_hip[%d] = %f\n",i,  msg->kp_hip[i]);
-		// rt_printf("kd_hip[%d] = %f\n",i,  msg->kd_hip[i]);
+		rt_printf("kp_hip[%d] = %f\n",i,  msg->kp_hip[i]);
+		rt_printf("kd_hip[%d] = %f\n",i,  msg->kd_hip[i]);
 		// rt_printf("tau_ff_hip[%d] = %f\n",i,  msg->tau_hip_ff[i]);
 
 		// // rt_printf("Abad setpoints:\n");
@@ -77,7 +101,7 @@ void print_spi_command(spi_command_t* msg)
 
 void print_spi_data(spi_data_t* msg)
 {
-	for (int i = 0; i < 1; ++i)
+	for (int i = 0; i < 2; ++i)
 	{
 		rt_printf("\n");
 		rt_printf("Leg no. %d :\n", i);
@@ -85,8 +109,8 @@ void print_spi_data(spi_data_t* msg)
 		rt_printf("q_knee[%d] = %f\n",i, msg->q_knee[i]);
 		// rt_printf("qd_knee[%d] = %f\n",i, msg->qd_knee[i]);
 		
-		// // rt_printf("Hip data:\n");
-		// rt_printf("q_hip[%d] = %f\n",i, msg->q_hip[i]);
+		// rt_printf("Hip data:\n");
+		rt_printf("q_hip[%d] = %f\n",i, msg->q_hip[i]);
 		// rt_printf("qd_hip[%d] = %f\n",i, msg->qd_hip[i]);
 	
 		// rt_printf("Abad data:\n");
@@ -134,84 +158,84 @@ void control_comp(struct rt_task_args *args)
 			if(args->leg_data.q_knee[i] > K_LIM_P)
 			{
 				rt_printf("IMPORTANT: ESTOP APPLIED to knee[%d]\n" , i);
-				args->setpoints->q_des_knee[i] = K_LIM_P;
-				args->setpoints->qd_des_knee[i] = 0.0f;
-				args->setpoints->kp_knee[i] = 0;
-				args->setpoints->kd_knee[i] = KD_SOFTSTOP;
-				args->setpoints->tau_knee_ff[i] += KP_SOFTSTOP*(K_LIM_P - args->leg_data.q_knee[i]);
+				args->setpoints.q_des_knee[i] = K_LIM_P;
+				args->setpoints.qd_des_knee[i] = 0.0f;
+				args->setpoints.kp_knee[i] = 0;
+				args->setpoints.kd_knee[i] = KD_SOFTSTOP;
+				args->setpoints.tau_knee_ff[i] += KP_SOFTSTOP*(K_LIM_P - args->leg_data.q_knee[i]);
 				args->leg_data.flags[i] |= 1;
 
 			}
 				else if (args->leg_data.q_knee[i] < K_LIM_N)
 			{
 				rt_printf("IMPORTANT: ESTOP APPLIED to knee[%d]\n", i);
-				args->setpoints->q_des_knee[i] = K_LIM_N;
-				args->setpoints->qd_des_knee[i] = 0.0f;
-				args->setpoints->kp_knee[i] = 0;
-				args->setpoints->kd_knee[i] = KD_SOFTSTOP;
-				args->setpoints->tau_knee_ff[i] += KP_SOFTSTOP*(K_LIM_N - args->leg_data.q_knee[i]);
+				args->setpoints.q_des_knee[i] = K_LIM_N;
+				args->setpoints.qd_des_knee[i] = 0.0f;
+				args->setpoints.kp_knee[i] = 0;
+				args->setpoints.kd_knee[i] = KD_SOFTSTOP;
+				args->setpoints.tau_knee_ff[i] += KP_SOFTSTOP*(K_LIM_N - args->leg_data.q_knee[i]);
 				args->leg_data.flags[i] = 1;
 
 			}
 
 			args->motor_torq_setpoints.torq_setpoint_knee[i] = \
-			args->setpoints->tau_knee_ff[i]	+ (args->setpoints->kp_knee[i]) * (args->setpoints->q_des_knee[i] - args->leg_data.q_knee[i]) + \
-			(args->setpoints->kd_knee[i]) * (args->setpoints->qd_des_knee[i] - args->leg_data.qd_knee[i]);
+			args->setpoints.tau_knee_ff[i]	+ (args->setpoints.kp_knee[i]) * (args->setpoints.q_des_knee[i] - args->leg_data.q_knee[i]) + \
+			(args->setpoints.kd_knee[i]) * (args->setpoints.qd_des_knee[i] - args->leg_data.qd_knee[i]);
 
 			if(args->leg_data.q_hip[i] > H_LIM_P)
 			{
 				rt_printf("IMPORTANT: ESTOP APPLIED to hip[%d]\n", i);
-				args->setpoints->q_des_hip[i] = H_LIM_P;
-				args->setpoints->qd_des_hip[i] = 0.0f;
-				args->setpoints->kp_hip[i] = 0;
-				args->setpoints->kd_hip[i] = KD_SOFTSTOP;
-				args->setpoints->tau_hip_ff[i] += KP_SOFTSTOP*(H_LIM_P - args->leg_data.q_hip[i]);
+				args->setpoints.q_des_hip[i] = H_LIM_P;
+				args->setpoints.qd_des_hip[i] = 0.0f;
+				args->setpoints.kp_hip[i] = 0;
+				args->setpoints.kd_hip[i] = KD_SOFTSTOP;
+				args->setpoints.tau_hip_ff[i] += KP_SOFTSTOP*(H_LIM_P - args->leg_data.q_hip[i]);
 				args->leg_data.flags[i] = 2;
 
 			}
 			else if (args->leg_data.q_hip[i] < H_LIM_N)
 			{
 				rt_printf("IMPORTANT: ESTOP APPLIED to hip[%d]\n", i);
-				args->setpoints->q_des_hip[i] = H_LIM_N;
-				args->setpoints->qd_des_hip[i] = 0.0f;
-				args->setpoints->kp_hip[i] = 0;
-				args->setpoints->kd_hip[i] = KD_SOFTSTOP;
-				args->setpoints->tau_hip_ff[i] += KP_SOFTSTOP*(H_LIM_N - args->leg_data.q_hip[i]);
+				args->setpoints.q_des_hip[i] = H_LIM_N;
+				args->setpoints.qd_des_hip[i] = 0.0f;
+				args->setpoints.kp_hip[i] = 0;
+				args->setpoints.kd_hip[i] = KD_SOFTSTOP;
+				args->setpoints.tau_hip_ff[i] += KP_SOFTSTOP*(H_LIM_N - args->leg_data.q_hip[i]);
 				args->leg_data.flags[i] = 2;
 
 			}
 
 			args->motor_torq_setpoints.torq_setpoint_hip[i] = \
-			args->setpoints->tau_hip_ff[i]	+ (args->setpoints->kp_hip[i]) * (args->setpoints->q_des_hip[i] - args->leg_data.q_hip[i]) + \
-			(args->setpoints->kd_hip[i]) * (args->setpoints->qd_des_hip[i] - args->leg_data.qd_hip[i]);
+			args->setpoints.tau_hip_ff[i]	+ (args->setpoints.kp_hip[i]) * (args->setpoints.q_des_hip[i] - args->leg_data.q_hip[i]) + \
+			(args->setpoints.kd_hip[i]) * (args->setpoints.qd_des_hip[i] - args->leg_data.qd_hip[i]);
 
 			if(args->leg_data.q_abad[i] > A_LIM_P)
 			{
 				rt_printf("IMPORTANT: ESTOP APPLIED to abad[%d]\n", i);
-				args->setpoints->q_des_abad[i] = A_LIM_P;
-				args->setpoints->qd_des_abad[i] = 0.0f;
-				args->setpoints->kp_abad[i] = 0;
-				args->setpoints->kd_abad[i] = KD_SOFTSTOP;
-				args->setpoints->tau_abad_ff[i] += KP_SOFTSTOP*(A_LIM_P - args->leg_data.q_abad[i]);
+				args->setpoints.q_des_abad[i] = A_LIM_P;
+				args->setpoints.qd_des_abad[i] = 0.0f;
+				args->setpoints.kp_abad[i] = 0;
+				args->setpoints.kd_abad[i] = KD_SOFTSTOP;
+				args->setpoints.tau_abad_ff[i] += KP_SOFTSTOP*(A_LIM_P - args->leg_data.q_abad[i]);
 				args->leg_data.flags[i] = 3;
 
 			}
 			else if (args->leg_data.q_abad[i] < A_LIM_N)
 			{
 				rt_printf("IMPORTANT: ESTOP APPLIED to abad[%d]\n", i);
-				args->setpoints->q_des_abad[i] = A_LIM_N;
-				args->setpoints->qd_des_abad[i] = 0.0f;
-				args->setpoints->kp_abad[i] = 0;
-				args->setpoints->kd_abad[i] = KD_SOFTSTOP;
-				args->setpoints->tau_abad_ff[i] += KP_SOFTSTOP*(A_LIM_N - args->leg_data.q_abad[i]);
+				args->setpoints.q_des_abad[i] = A_LIM_N;
+				args->setpoints.qd_des_abad[i] = 0.0f;
+				args->setpoints.kp_abad[i] = 0;
+				args->setpoints.kd_abad[i] = KD_SOFTSTOP;
+				args->setpoints.tau_abad_ff[i] += KP_SOFTSTOP*(A_LIM_N - args->leg_data.q_abad[i]);
 				args->leg_data.flags[i] = 3;
 
 			}
 
 
 			args->motor_torq_setpoints.torq_setpoint_abad[i] = \
-			args->setpoints->tau_abad_ff[i]	+ (args->setpoints->kp_abad[i]) * (args->setpoints->q_des_abad[i] - args->leg_data.q_abad[i]) + \
-			(args->setpoints->kd_abad[i]) * (args->setpoints->qd_des_abad[i] - args->leg_data.qd_abad[i]);
+			args->setpoints.tau_abad_ff[i]	+ (args->setpoints.kp_abad[i]) * (args->setpoints.q_des_abad[i] - args->leg_data.q_abad[i]) + \
+			(args->setpoints.kd_abad[i]) * (args->setpoints.qd_des_abad[i] - args->leg_data.qd_abad[i]);
 	
 		}
 
@@ -520,11 +544,12 @@ void* write_task_func_imu(void * arg)
 	int err, id= 0, flag = 0;
 	struct imu_rt_task_args* args;
 	args = (struct imu_rt_task_args*)arg;
+	int isRunning_local=1;
 
 	struct period_info pinfo;
 	periodic_task_init(&pinfo,TASK_PERIOD_IMU);
 	
-	while(1)
+	while(isRunning_local)
 	{
 		
 		/*send reqs for imu data*/
@@ -546,20 +571,19 @@ void* write_task_func_imu(void * arg)
 		while(1)
 		{
 			err = pcanfd_recv_msg(args->fd, &args->res_msgs_imu[msg_count]);
-			if(err == -EWOULDBLOCK) /* no msgs left to read*/
-				break;
-			else if(err)
+			if(err < 0) /* no msgs left to read*/
 			{
-				// rt_printf("[IMU-RT-TASK] : DANGER : Recv msg failed in IMU thread because of error no. %d\n", err);	
-	
-			} 
-		
-		 else
-		 	#ifdef DEBUG
-			// print_message_single(imu_port, &args->res_msgs_imu[msg_count]);	
-			// print_imu_data(&args->data);
-			#endif
-			msg_count++;
+				break;
+			}
+			else 
+			{
+			// rt_printf("[IMU-RT-TASK] : DANGER : Recv msg failed in IMU thread because of error no. %d\n", err);	
+			 	#ifdef DEBUG
+				// print_message_single(imu_port, &args->res_msgs_imu[msg_count]);	
+				print_imu_data(&args->data);
+				#endif
+				msg_count++;
+			}  	
 
 		}
 		/* parse the data*/
@@ -569,52 +593,74 @@ void* write_task_func_imu(void * arg)
 			switch(id)
 			{
 				case 140:
-					args->data.quat[0] = (args->res_msgs_imu[i].data[3] << 24| args->res_msgs_imu[i].data[2] << 16| args->res_msgs_imu[i].data[1] << 8| args->res_msgs_imu[i].data[0]);
-					args->data.quat[1] = (args->res_msgs_imu[i].data[7] << 24| args->res_msgs_imu[i].data[6] << 16| args->res_msgs_imu[i].data[5] << 8| args->res_msgs_imu[i].data[4]);
+					args->data.quat[0] = bytes_to_float(&args->res_msgs_imu[i].data[0]);
+					args->data.quat[1] = bytes_to_float(&args->res_msgs_imu[i].data[4]);
+					// args->data.quat[0] = (args->res_msgs_imu[i].data[3] << 24| args->res_msgs_imu[i].data[2] << 16| args->res_msgs_imu[i].data[1] << 8| args->res_msgs_imu[i].data[0]);
+					// args->data.quat[1] = (args->res_msgs_imu[i].data[7] << 24| args->res_msgs_imu[i].data[6] << 16| args->res_msgs_imu[i].data[5] << 8| args->res_msgs_imu[i].data[4]);
 				case 141:
-					args->data.quat[2] = (args->res_msgs_imu[i].data[3] << 24| args->res_msgs_imu[i].data[2] << 16| args->res_msgs_imu[i].data[1] << 8| args->res_msgs_imu[i].data[0]);
-					args->data.quat[3] = (args->res_msgs_imu[i].data[7] << 24| args->res_msgs_imu[i].data[6] << 16| args->res_msgs_imu[i].data[5] << 8| args->res_msgs_imu[i].data[4]);
+					args->data.quat[2] = bytes_to_float(&args->res_msgs_imu[i].data[0]);
+					args->data.quat[3] = bytes_to_float(&args->res_msgs_imu[i].data[4]);
+					// args->data.quat[2] = (args->res_msgs_imu[i].data[3] << 24| args->res_msgs_imu[i].data[2] << 16| args->res_msgs_imu[i].data[1] << 8| args->res_msgs_imu[i].data[0]);
+					// args->data.quat[3] = (args->res_msgs_imu[i].data[7] << 24| args->res_msgs_imu[i].data[6] << 16| args->res_msgs_imu[i].data[5] << 8| args->res_msgs_imu[i].data[4]);
 				case 146:
-					args->data.gyro[0] = (args->res_msgs_imu[i].data[1] << 8| args->res_msgs_imu[i].data[0]);
-					args->data.gyro[0] = qToFloat(args->data.gyro[0], 9);
-					args->data.gyro[1] = (args->res_msgs_imu[i].data[3] << 8| args->res_msgs_imu[i].data[2]);
-					args->data.gyro[1] = qToFloat(args->data.gyro[1], 9 );
-					args->data.gyro[2] = (args->res_msgs_imu[i].data[5] << 8| args->res_msgs_imu[i].data[4]);
-					args->data.gyro[2] = qToFloat(args->data.gyro[2], 9);
+					args->data.gyro[0] = qToFloat(bytes_to_uint16(&args->res_msgs_imu[i].data[0]), 9);
+					// args->data.gyro[0] = (&args->res_msgs_imu[i].data[i].data[1] << 8| &args->res_msgs_imu[i].data[i].data[0]);
+					// args->data.gyro[0] = qToFloat(args->data.gyro[0], 9);
+					args->data.gyro[1] = qToFloat(bytes_to_uint16(&args->res_msgs_imu[i].data[2]), 9);
+					// args->data.gyro[1] = (&args->res_msgs_imu[i].data[i].data[3] << 8| &args->res_msgs_imu[i].data[i].data[2]);
+					// args->data.gyro[1] = qToFloat(args->data.gyro[1], 9 );
+					args->data.gyro[2] = qToFloat(bytes_to_uint16(&args->res_msgs_imu[i].data[4]), 9);
+					// args->data.gyro[2] = (&args->res_msgs_imu[i].data[5] << 8| &args->res_msgs_imu[i].data[4]);
+					// args->data.gyro[2] = qToFloat(args->data.gyro[2], 9);
 				case 143:
-					args->data.accel[0] = (args->res_msgs_imu[i].data[1] << 8| args->res_msgs_imu[i].data[0]);
-					args->data.accel[0] = qToFloat(args->data.accel[0], 8);
-					args->data.accel[1] = (args->res_msgs_imu[i].data[3] << 8| args->res_msgs_imu[i].data[2]);
-					args->data.accel[1] = qToFloat(args->data.accel[1], 8);
-					args->data.accel[2] = (args->res_msgs_imu[i].data[5] << 8| args->res_msgs_imu[i].data[4]);
-					args->data.accel[2] = qToFloat(args->data.accel[2], 8);
+					args->data.accel[0] = qToFloat(bytes_to_uint16(&args->res_msgs_imu[i].data[0]), 8);
+					// args->data.accel[0] = (&args->res_msgs_imu[i].data[1] << 8| &args->res_msgs_imu[i].data[0]);
+					// args->data.accel[0] = qToFloat(args->data.accel[0], 8);
+					args->data.accel[1] = qToFloat(bytes_to_uint16(&args->res_msgs_imu[i].data[2]), 8);
+					// args->data.accel[1] = (&args->res_msgs_imu[i].data[3] << 8| &args->res_msgs_imu[i].data[2]);
+					// args->data.accel[1] = qToFloat(args->data.accel[1], 8);
+					args->data.accel[1] = qToFloat(bytes_to_uint16(&args->res_msgs_imu[i].data[4]), 8);
+					// args->data.accel[2] = (args->res_msgs_imu[i].data[5] << 8| args->res_msgs_imu[i].data[4]);
+					// args->data.accel[2] = qToFloat(args->data.accel[2], 8);
 			}
 
 
 		}
 		
 		/* acquire mutex*/
-		// err = pthread_mutex_timelock(&mutex);
-		// if(err)
-		// {
-		// 	if(errno == EDEADLK)
-		// 		rt_printf("[IMU-RT-TASK] : Mutex already lock by IMU thread, skipping\n");
-		// 	else
-		// 		rt_printf("[IMU-RT-TASK] : Ivalid mutex\n");
+		err = pthread_mutex_trylock(&mutex);
+		if(err)
+		{
+			if(errno == EPERM)
+				rt_printf("[IMU-RT-TASK] : Invalid context, failed to lock mutex\n");
+			else if (errno == EINVAL)
+				rt_printf("[IMU-RT-TASK] : Invalid mutex, failed to lock\n");
+			else
+				rt_printf("[IMU-RT-TASK] : Failed to acquire mutex\n");
 
-		// }
+		}
+		else
+		{
+			flag = status;
+			isRunning_local = isRunning;
+
+			/*release mutex*/
+			err = pthread_mutex_unlock(&mutex);
+			if(err)
+			{
+				if(errno == EPERM)
+					rt_printf("[IMU-RT-TASK] : Invalid context, failed to unlock mutex\n");
+				else if (errno == EINVAL)
+					rt_printf("[IMU-RT-TASK] : Invalid mutex, failed to unlock\n");
+				else
+					rt_printf("[IMU-RT-TASK] : Failed to release mutex\n");
+
+			}
+		}
 		
-		flag = status;
-		/*release mutex*/
-		// err = pthread_mutex_lock(&mutex);
-		// if(err)
-		// {
-		// 	if(errno == EDEADLK)
-		// 		rt_printf("[IMU-RT-TASK] : Mutex already lock by IMU thread, skipping\n");
-		// 	else
-		// 		rt_printf("[IMU-RT-TASK] : Ivalid mutex\n");
+		
 
-		// }
+
 		
 		// if(err)
 		// {
@@ -650,6 +696,7 @@ void* write_task_func_imu(void * arg)
 		wait_rest_of_period(&pinfo);	
 		
 	}
+	rt_printf("[IMU-RT-TASK] : Exiting pthread\n");
 }
 
 void* write_task_func(void * arg)
@@ -660,10 +707,12 @@ void* write_task_func(void * arg)
 	int prio = 1;
 	struct period_info pinfo;
 	periodic_task_init(&pinfo,TASK_PERIOD_MOTOR);
+	int isRunning_local=1;
+	spi_command_t data;
 	// clock_gettime(CLOCK_MONOTONIC, &start);
 
 	/*enter infinite loop*/
-	while(1)
+	while(isRunning_local)
 	{
 		/* wait for task release*/
 		// err = rt_task_wait_period(NULL);
@@ -678,7 +727,9 @@ void* write_task_func(void * arg)
 		// 	rt_printf("DANGER :RT TASK MOTORS wait failed\n");
 
 		/* read setpoints from mss q*/
-		err = mq_receive(args->msg_q_cmd, (char *) args->setpoints, sizeof(spi_command_t), &prio);
+		// err = mq_receive(args->msg_q_cmd, (char *) &data, sizeof(spi_command_t), &prio);
+		err = mq_receive(args->msg_q_cmd, (char *) &args->setpoints, sizeof(spi_command_t), &prio);
+		memset(&args->setpoints, 0 , sizeof(spi_command_t));
 		if(err < 0)
 		{
 			if(errno == EAGAIN)
@@ -699,6 +750,7 @@ void* write_task_func(void * arg)
 			#endif	
 			// isRunning = 0;
 			// return;
+			// memcpy(&args->setpoints, &data,sizeof(spi_command_t) );
 
 		}
 		else
@@ -720,32 +772,65 @@ void* write_task_func(void * arg)
 		// 	// isRunning = 0;
 		// 	return;
 		// }
-		err = mq_receive(args->msg_q_status, (char *)(&status), sizeof(int), &prio);
-		if(err < 0)
+
+		err = pthread_mutex_trylock(&mutex);
+		if(err)
 		{
-			if(errno == EAGAIN)
-			{
-				#ifdef DEBUG
-				// rt_printf("[MOTOR-RT-TASK] :No msg available in status msg q, skipping\n");
-				#endif 	
-			}
-			else if(errno == EBADF)
-				rt_printf("[MOTOR-RT-TASK] :Invalid fd for status msg q\n");
-			else if(errno == EMSGSIZE)
-				rt_printf("[MOTOR-RT-TASK] :Invalid msg size for status msg q\n");
-		}
-		else if (err == sizeof(int))
-		{
-			#ifdef DEBUG
-			// rt_printf("[MOTOR-RT-TASK] : Read status msg from higher controller\n");	
-			#endif	
-			// isRunning = 0;
-			// return;
+			if(errno == EPERM)
+				rt_printf("[MOTOR-RT-TASK] : Invalid context, failed to lock mutex\n");
+			else if (errno == EINVAL)
+				rt_printf("[MOTOR-RT-TASK] : Invalid mutex, failed to lock\n");
+			else
+				rt_printf("[MOTOR-RT-TASK] : Failed to acquire mutex\n");
 
 		}
 		else
-			rt_printf("[MOTOR-RT-TASK]: DANGER : Read incomplete status from higher controller %d\n");
+		{
+			// err = mq_receive(args->msg_q_status, (char *)(&flag), sizeof(int), &prio);
+			err = mq_receive(args->msg_q_status, (char *)(&status), sizeof(int), &prio);
+			if(err < 0)
+			{
+				if(errno == EAGAIN)
+				{
+					#ifdef DEBUG
+					// rt_printf("[MOTOR-RT-TASK] :No msg available in status msg q, skipping\n");
+					#endif 	
+				}
+				else if(errno == EBADF)
+					rt_printf("[MOTOR-RT-TASK] :Invalid fd for status msg q\n");
+				else if(errno == EMSGSIZE)
+					rt_printf("[MOTOR-RT-TASK] :Invalid msg size for status msg q\n");
+			}
+			else if (err == sizeof(int))
+			{
+				#ifdef DEBUG
+				// rt_printf("[MOTOR-RT-TASK] : Read status msg from higher controller\n");	
+				#endif	
+				// isRunning = 0;
+				// return;
+				// memcpy(&status, &flag, sizeof(int));
 
+
+			}
+			else
+				rt_printf("[MOTOR-RT-TASK]: DANGER : Read incomplete status from higher controller %d\n");
+			isRunning_local = isRunning;
+			err = pthread_mutex_unlock(&mutex);
+			if(err)
+			{
+				if(errno == EPERM)
+					rt_printf("[MOTOR-RT-TASK] : Invalid context, failed to unlock mutex\n");
+				else if (errno == EINVAL)
+					rt_printf("[MOTOR-RT-TASK] : Invalid mutex, failed to unlock\n");
+				else
+					rt_printf("[MOTOR-RT-TASK] : Failed to release mutex\n");
+
+			}
+
+
+		}
+
+		
 		// /*unlock mutex*/
 		// err = rt_mutex_release(&mutex);
 		// if(err)
@@ -755,12 +840,13 @@ void* write_task_func(void * arg)
 		// 	#endif 
 
 		// }
+		
 			
 		#ifdef DEBUG
-		print_spi_command(args->setpoints);
+		print_spi_command(&args->setpoints);
 		#endif 
 	
-		apply_safey_limits(args->setpoints);
+		apply_safey_limits(&args->setpoints);
 		
 
 		/* send  0x9c requests on CANBUS*/
@@ -808,24 +894,27 @@ void* write_task_func(void * arg)
 				while(1)
 				{
 					err = pcanfd_recv_msg(args->fd[i], &args->res_msgs[msg_count]);
-					if(err == -EWOULDBLOCK) /* no msgs left to read*/
-						break;
-					else if(err)
+					if(err < 0)
 					{
-						rt_printf("[MOTOR-RT-TASK] :DANGER : Recv msg failed because of error no. %d\n", err);	
-						// isRunning = 0;
-						// return;
-					} 
-				
-				 else
-				 	#ifdef DEBUG
-					// print_message_single(ports[i], &args->res_msgs[msg_count]);	
-					#endif
-					msg_count++;
+						break;
+					}
+					else
+					{
+					 	#ifdef DEBUG
+						// print_message_single(ports[i], &args->res_msgs[msg_count]);	
+						#endif
+						msg_count++;
+					} 	
 
 				}
 
-			/* parse responses leg-wise*/
+				if(err != -EWOULDBLOCK)
+				{
+					rt_printf("[MOTOR-RT-TASK] :DANGER : Recv msg failed because of error no. %d\n", err);	
+					// isRunning = 0;
+					// return;
+				}
+
 			unpack_reply(args->res_msgs, msg_count, &args->leg_data, i);
 
 		}
@@ -836,7 +925,7 @@ void* write_task_func(void * arg)
 		pack_torque_cmd(args);
 		#ifdef DEBUG
 		print_spi_data(&args->leg_data);
-		print_torq_data(&args->motor_torq_setpoints);
+		// print_torq_data(&args->motor_torq_setpoints);
 		#endif 
 		/* publish on msg q before sending over CANBUS*/
 		if (status)
@@ -874,7 +963,7 @@ void* write_task_func(void * arg)
 		#ifdef CAN_WRITE
 		for (int i = 0; i < 1; ++i)
 		{
-			for (int j = 0; j < 1; ++j)
+			for (int j = 0; j < 2; ++j)
 			{
 				switch(j)
 				{
@@ -915,6 +1004,7 @@ void* write_task_func(void * arg)
 
 		wait_rest_of_period(&pinfo);
 	}
+	rt_printf("[MOTOR-RT-TASK]: Exiting pthread");
 
 }
 
@@ -925,9 +1015,6 @@ int main()
 	
 	/*timeout for lcm select */
 	int err;
-	struct timeval timeout;
-	timeout.tv_sec = 0;
-	timeout.tv_usec = 0;
 	/* struct for passing */
 	/* for isolating CPUs*/
 	cpu_set_t cpu_motors, cpu_imu;
@@ -939,62 +1026,66 @@ int main()
 	pthread_t motor_thread, imu_thread;
 
 	/* declare rt task arg structure*/
-	struct rt_task_args* args = malloc(sizeof(struct rt_task_args));
-	if(!args)
-	{
-		rt_printf("Joint PD controller (main): Malloc for args failed, exiting program\n");
-		return 0;
-	}
+	// struct rt_task_args* args = malloc(sizeof(struct rt_task_args));
+	// if(!args)
+	// {
+	// 	rt_printf("Joint PD controller (main): Malloc for args failed, exiting program\n");
+	// 	return 0;
+	// }
+	struct rt_task_args args;
 	/* set everything to 0*/
-	memset(args,0,sizeof(struct rt_task_args));
+	memset(&args,0,sizeof(struct rt_task_args));
 
-	args->setpoints = (spi_command_t*)malloc(sizeof(spi_command_t));
-	if(!args->setpoints)
-	{
-		rt_printf("Joint PD controller (main):Malloc for args->setpoints failed, exiting program\n");
-		return 0;
-	}
+	// args->setpoints = (spi_command_t*)malloc(sizeof(spi_command_t));
+	// if(!args->setpoints)
+	// {
+	// 	rt_printf("Joint PD controller (main):Malloc for args.setpoints failed, exiting program\n");
+	// 	return 0;
+	// }
+
 	/* set initial setpoints */
-	memset(args->setpoints, 0 , sizeof(spi_command_t));
-	args->setpoints->q_des_knee[0] = 1.7;
-	args->setpoints->kp_knee[0] = 40;
-	args->setpoints->kd_knee[0] = 5;
+	// memset(args.setpoints, 0 , sizeof(spi_command_t));
+	// args.setpoints->q_des_hip[0] = -0.78;
+	// args.setpoints->kp_hip[0] = 70;
+	// args.setpoints->kd_hip[0] = 10;
 
 
 	/* declare rt task arg structure for imu*/
-	struct imu_rt_task_args* args_imu = malloc(sizeof(struct imu_rt_task_args));
-	if(!args_imu)
-	{
-		rt_printf("Joint PD controller (main): Malloc for args failed, exiting program\n");
-		return 0;
-	}
+	// struct imu_rt_task_args* args_imu = malloc(sizeof(struct imu_rt_task_args));
+	// if(!args_imu)
+	// {
+	// 	rt_printf("Joint PD controller (main): Malloc for args failed, exiting program\n");
+	// 	return 0;
+	// }
+	struct imu_rt_task_args args_imu;
 	/* set everything to 0*/
-	memset(args_imu,0,sizeof(struct imu_rt_task_args));
+	memset(&args_imu,0,sizeof(struct imu_rt_task_args));
+	// struct pcanfd_msg_filter* msg_filter =  malloc(sizeof(struct pcanfd_msg_filter));
+	// if(!msg_filter)
+	// {
+	// 	rt_printf("Joint PD controller (main):Malloc for msg_filter failed, exiting program\n");
+	// 	return 0;
+	// }
+	struct pcanfd_msg_filter msg_filter;
 
-	struct pcanfd_msg_filter* msg_filter =  malloc(sizeof(struct pcanfd_msg_filter));
-	if(!msg_filter)
-	{
-		rt_printf("Joint PD controller (main):Malloc for msg_filter failed, exiting program\n");
-		return 0;
-	}
 
 	
 	/* open can ports*/
 	for (int i = 0; i < 4; ++i)
 	{
-		args->fd[i] = pcanfd_open(ports[i], OFD_BITRATE  | PCANFD_INIT_STD_MSG_ONLY | OFD_NONBLOCKING, 1000000);
-		if (args->fd[i] < 0)
+		args.fd[i] = pcanfd_open(ports[i], OFD_BITRATE  | PCANFD_INIT_STD_MSG_ONLY | OFD_NONBLOCKING, 1000000);
+		if (args.fd[i] < 0)
 		{
-			rt_printf("Joint PD controller (main):Pcanfd open failed with err %d on port no. %d\n",args->fd[i], i);
+			rt_printf("Joint PD controller (main):Pcanfd open failed with err %d on port no. %d\n",args.fd[i], i);
 			return 0;
 		}
 	}
 
 	/*open imu can port*/
-	args_imu->fd = pcanfd_open(imu_port, OFD_BITRATE  | PCANFD_INIT_STD_MSG_ONLY | OFD_NONBLOCKING, 1000000);
-	if (args_imu->fd < 0)
+	args_imu.fd = pcanfd_open(imu_port, OFD_BITRATE  | PCANFD_INIT_STD_MSG_ONLY | OFD_NONBLOCKING, 1000000);
+	if (args_imu.fd < 0)
 	{
-		rt_printf("Joint PD controller (main):Pcanfd open failed with err %d on port no.\n",args_imu->fd);
+		rt_printf("Joint PD controller (main):Pcanfd open failed with err %d on port no.\n",args_imu.fd);
 		return 0;
 	}
 
@@ -1002,45 +1093,45 @@ int main()
 	uint32_t allowed_msg = PCANFD_ALLOWED_MSG_CAN;
 	for (int i = 0; i < 4; ++i)
 	{
-		err = pcanfd_set_option(args->fd[i], PCANFD_OPT_ALLOWED_MSGS, &allowed_msg, sizeof(allowed_msg));
+		err = pcanfd_set_option(args.fd[i], PCANFD_OPT_ALLOWED_MSGS, &allowed_msg, sizeof(allowed_msg));
 		if (err) 
 		{
-			rt_printf("Joint PD Controller (main): Failed to set_option on fd %d with errno %d\n", args->fd[i], err);
+			rt_printf("Joint PD Controller (main): Failed to set_option on fd %d with errno %d\n", args.fd[i], err);
 			return 0;
 
 		}
 				
 	}
 	/*set filter on imu canbus*/
-	err = pcanfd_set_option(args_imu->fd, PCANFD_OPT_ALLOWED_MSGS, &allowed_msg, sizeof(allowed_msg));
+	err = pcanfd_set_option(args_imu.fd, PCANFD_OPT_ALLOWED_MSGS, &allowed_msg, sizeof(allowed_msg));
 	if (err) 
 	{
-		rt_printf("Joint PD Controller (main): Failed to set_option on fd %d with errno %d\n", args_imu->fd, err);
+		rt_printf("Joint PD Controller (main): Failed to set_option on fd %d with errno %d\n", args_imu.fd, err);
 		return 0;
 
 	}
 
 	/* add filters on CANID for safety, allow only CANIDS 141 - 143 */
-	msg_filter->id_from = 0x141;
-	msg_filter->id_to = 0x143;
+	msg_filter.id_from = 0x141;
+	msg_filter.id_to = 0x143;
 	for (int i = 0; i < 4; ++i)
 	{
-		err = pcanfd_add_filter(args->fd[i], msg_filter);
+		err = pcanfd_add_filter(args.fd[i], &msg_filter);
 		if (err) 
 		{
-			rt_printf("Joint PD Controller (main): Failed to add_filter on fd %d with errno %d\n", args->fd[i], err);
+			rt_printf("Joint PD Controller (main): Failed to add_filter on fd %d with errno %d\n", args.fd[i], err);
 			return 0;
 
 		}
 				
 	}
 	/* add filter for imu canbus*/
-	msg_filter->id_from = 139;
-	msg_filter->id_to = 151;
-	err = pcanfd_add_filter(args_imu->fd, msg_filter);
+	msg_filter.id_from = 139;
+	msg_filter.id_to = 151;
+	err = pcanfd_add_filter(args_imu.fd, &msg_filter);
 	if (err) 
 	{
-		rt_printf("Joint PD Controller (main): Failed to add_filter on fd %d with errno %d\n", args_imu->fd, err);
+		rt_printf("Joint PD Controller (main): Failed to add_filter on fd %d with errno %d\n", args_imu.fd, err);
 		return 0;
 
 	
@@ -1052,94 +1143,94 @@ int main()
 	/* 0x9c is the command for getting the velocity*/
 	for (int i = 0; i < 3; ++i)
 	{
-		args->req_msgs_vel[i].type = PCANFD_TYPE_CAN20_MSG;
-		args->req_msgs_vel[i].data_len = 8;
-		args->req_msgs_vel[i].id = (0x141 +i);
+		args.req_msgs_vel[i].type = PCANFD_TYPE_CAN20_MSG;
+		args.req_msgs_vel[i].data_len = 8;
+		args.req_msgs_vel[i].id = (0x141 +i);
 		for (int j = 1; j < 8; ++j)
 		{
-			args->req_msgs_vel[i].data[j] = 0;	
+			args.req_msgs_vel[i].data[j] = 0;	
 		}
 		
-		args->req_msgs_vel[i].data[0] = 0x9c;
+		args.req_msgs_vel[i].data[0] = 0x9c;
 			
 	}
 	/*0x92 is the command for getting the multi turns angle*/
 	for (int i = 0; i < 3; ++i)
 	{
-		args->req_msgs_pos[i].type = PCANFD_TYPE_CAN20_MSG;
-		args->req_msgs_pos[i].data_len = 8;
-		args->req_msgs_pos[i].id = (0x141 + i);
+		args.req_msgs_pos[i].type = PCANFD_TYPE_CAN20_MSG;
+		args.req_msgs_pos[i].data_len = 8;
+		args.req_msgs_pos[i].id = (0x141 + i);
 		for (int j = 1; j < 8; ++j)
 		{
-			args->req_msgs_pos[i].data[j] = 0;	
+			args.req_msgs_pos[i].data[j] = 0;	
 		}
 		
-		args->req_msgs_pos[i].data[0] = 0x92;
+		args.req_msgs_pos[i].data[0] = 0x92;
 			
 	}
 
 	/* imu quat req msg*/
 	
-	args_imu->get_quat.type = PCANFD_TYPE_CAN20_MSG;
-	args_imu->get_quat.data_len = 8;
-	args_imu->get_quat.id = 139;
+	args_imu.get_quat.type = PCANFD_TYPE_CAN20_MSG;
+	args_imu.get_quat.data_len = 8;
+	args_imu.get_quat.id = 139;
 	for (int j = 0; j < 8; ++j)
 	{
-		args_imu->get_quat.data[j] = 0;	
+		args_imu.get_quat.data[j] = 0;	
 	}
 	/*imu gyro req msg*/
-	args_imu->get_gyro.type = PCANFD_TYPE_CAN20_MSG;
-	args_imu->get_gyro.data_len = 8;
-	args_imu->get_gyro.id = 145;
+	args_imu.get_gyro.type = PCANFD_TYPE_CAN20_MSG;
+	args_imu.get_gyro.data_len = 8;
+	args_imu.get_gyro.id = 145;
 	for (int j = 0; j < 8; ++j)
 	{
-		args_imu->get_gyro.data[j] = 0;	
+		args_imu.get_gyro.data[j] = 0;	
 	}
 	/*imu gyro req msg*/
-	args_imu->get_accel.type = PCANFD_TYPE_CAN20_MSG;
-	args_imu->get_accel.data_len = 8;
-	args_imu->get_accel.id = 142;
+	args_imu.get_accel.type = PCANFD_TYPE_CAN20_MSG;
+	args_imu.get_accel.data_len = 8;
+	args_imu.get_accel.id = 142;
 	for (int j = 0; j < 8; ++j)
 	{
-		args_imu->get_accel.data[j] = 0;	
+		args_imu.get_accel.data[j] = 0;	
 	}
 	
 
 	// /*create real_time task*/
-	// err = rt_task_create(&args->write_task, "write_task", 0, 99, 0);
+	// err = rt_task_create(&args.write_task, "write_task", 0, 99, 0);
 	// if (err) {
 	// 	rt_printf("Joint PD Controller (main): Failed to create rt task, code %d\n", err);
 	// 	return err;
 	// }
 	// /* set affinity to isolate real-time task to only 1 cpus*/
-	// err = rt_task_set_affinity(&args->write_task, &cpu_motors);
+	// err = rt_task_set_affinity(&args.write_task, &cpu_motors);
 	// if (err) {
 	// 	rt_printf("Joint PD Controller (main): Failed to create rt task, code %d\n", err);
 	// 	return err;
 	// }
 	// /* set peridic task*/
 
-	// err = rt_task_set_periodic(&args->write_task, TM_NOW, rt_timer_ns2ticks(TASK_PERIOD_MOTOR));
+	// err = rt_task_set_periodic(&args.write_task, TM_NOW, rt_timer_ns2ticks(TASK_PERIOD_MOTOR));
 	// if (err) {
 	// 	rt_printf("Joint PD Controller (main): Failed set periodic task , code %d\n" ,err);
 	// 	return err;
 	// }
 
 	// create real_time task for imu
-	// err = rt_task_create(&args_imu->write_task, "write_task_imu", 0, 98, 0);
+	// err = rt_task_create(&args_imu.write_task, "write_task_imu", 0, 98, 0);
 	// if (err) {
 	// 	rt_printf("Joint PD Controller (main): Failed to create rt task, code %d\n", err);
 	// 	return err;
 	// }
 	// /* set affinity to isolate real-time task to only 1 cpus*/
-	// err = rt_task_set_affinity(&args_imu->write_task, &cpu_imu);
+	// err = rt_task_set_affinity(&args_imu.write_task, &cpu_imu);
 	// if (err) {
 	// 	rt_printf("Joint PD Controller (main): Failed to create rt task, code %d\n", err);
 	// 	return err;
 	// }
 	// /* set peridic task*/
 
-	// err = rt_task_set_periodic(&args_imu->write_task, TM_NOW, rt_timer_ns2ticks(TASK_PERIOD_IMU));
+	// err = rt_task_set_periodic(&args_imu.write_task, TM_NOW, rt_timer_ns2ticks(TASK_PERIOD_IMU));
 	// if (err) {
 	// 	rt_printf("Joint PD Controller (main): Failed set periodic task, code %d\n" ,err);
 	// 	return err;
@@ -1149,24 +1240,24 @@ int main()
 	data_q_attr.mq_flags = 0;
 	data_q_attr.mq_maxmsg = 100;
 	data_q_attr.mq_msgsize = sizeof(spi_data_t);
-	args->msg_q_data = mq_open(devname_data, O_WRONLY | O_NONBLOCK | O_CREAT, 0666, &data_q_attr);
-  	if(args->msg_q_data < 0)
+	args.msg_q_data = mq_open(devname_data, O_WRONLY | O_NONBLOCK | O_CREAT, 0666, &data_q_attr);
+  	if(args.msg_q_data < 0)
    		rt_printf("Failed to open data msg q\n");
 
     struct mq_attr msg_q_attr;
 	msg_q_attr.mq_flags = 0;
 	msg_q_attr.mq_maxmsg = 100;
 	msg_q_attr.mq_msgsize = sizeof(spi_command_t);
-	args->msg_q_cmd = mq_open(devname_cmd, O_RDONLY| O_NONBLOCK | O_CREAT, 0666, &msg_q_attr);
-  	if(args->msg_q_cmd < 0)
+	args.msg_q_cmd = mq_open(devname_cmd, O_RDONLY| O_NONBLOCK | O_CREAT, 0666, &msg_q_attr);
+  	if(args.msg_q_cmd < 0)
    		rt_printf("Failed to open data msg q\n");
 
    	struct mq_attr imu_q_attr;
 	imu_q_attr.mq_flags = 0;
 	imu_q_attr.mq_maxmsg = 100;
 	imu_q_attr.mq_msgsize = sizeof(struct imu_data);
-	args_imu->msg_q_imu = mq_open(devname_imu, O_WRONLY | O_NONBLOCK | O_CREAT, 0666, &imu_q_attr);
-  	if(args_imu->msg_q_imu < 0)
+	args_imu.msg_q_imu = mq_open(devname_imu, O_WRONLY | O_NONBLOCK | O_CREAT, 0666, &imu_q_attr);
+  	if(args_imu.msg_q_imu < 0)
    		rt_printf("Failed to open data msg q\n");
 
    	struct mq_attr status_q_attr;
@@ -1174,55 +1265,83 @@ int main()
 	status_q_attr.mq_maxmsg = 100;
 	status_q_attr.mq_msgsize = sizeof(int);
 	mqd_t msg_q_status;
-	args->msg_q_status = mq_open(devname_status, O_RDONLY | O_NONBLOCK | O_CREAT, 0666, &status_q_attr);
-  	if(args->msg_q_status < 0)
+	args.msg_q_status = mq_open(devname_status, O_RDONLY | O_NONBLOCK | O_CREAT, 0666, &status_q_attr);
+  	if(args.msg_q_status < 0)
    		rt_printf("Failed to open data msg q\n");
 
-	// err = rt_queue_create(&args->msg_q_setpoints, devname_cmd, 100*sizeof(spi_command_t), Q_UNLIMITED, Q_FIFO);
+   	/* flush the open q*/
+   	uint prio;
+   	spi_command_t data_temp;
+   	int status_temp;
+   	while(1)
+   	{
+   		err = mq_receive(args.msg_q_cmd, (char *) &data_temp, sizeof(spi_command_t), &prio);
+   		if (err < 0)
+   		{
+   			break;
+   		}
+   		usleep(1000);
+
+   	}
+   	rt_printf("Flushed cmd msg q\n");
+   	while(1)
+   	{
+   		err = mq_receive(args.msg_q_status, (char *)(&status_temp), sizeof(int), &prio);
+   		if (err < 0)
+   		{
+   			break;
+   		}
+   		usleep(1000);
+
+   	}
+   	rt_printf("Flushed status msg q\n");
+
+
+	// err = rt_queue_create(&args.msg_q_setpoints, devname_cmd, 100*sizeof(spi_command_t), Q_UNLIMITED, Q_FIFO);
 	// if (err) {
 	// 	rt_printf("Joint PD Controller (main): Failed to create msg spi_command msg q, code %d\n" ,err);
 	// 	return err;
 	// }
 	
-	// err = rt_queue_create(&args->msg_q_data, devname_data , 100*sizeof(spi_data_t), Q_UNLIMITED, Q_FIFO);
+	// err = rt_queue_create(&args.msg_q_data, devname_data , 100*sizeof(spi_data_t), Q_UNLIMITED, Q_FIFO);
 	// if (err) {
 	// 	rt_printf("Joint PD Controller (main): Failed to create spi_data msg q, code %d\n" ,err);
 	// 	return err;
 	// }
 
-	// err = rt_queue_create(&args_imu->msg_q_imu, devname_imu, 100*sizeof(struct imu_data), Q_UNLIMITED, Q_FIFO);
+	// err = rt_queue_create(&args_imu.msg_q_imu, devname_imu, 100*sizeof(struct imu_data), Q_UNLIMITED, Q_FIFO);
 	// if (err) {
 	// 	rt_printf("Joint PD Controller (main): Failed to create imu_data msg q, code %d\n" ,err);
 	// 	return err;
 	// }
 
-	// err = rt_queue_create(&args->msg_q_status, devname_status, sizeof(int), Q_UNLIMITED, Q_FIFO);
+	// err = rt_queue_create(&args.msg_q_status, devname_status, sizeof(int), Q_UNLIMITED, Q_FIFO);
 	// if (err) {
 	// 	rt_printf("Joint PD Controller (main): Failed to create status msg q, code %d\n" ,err);
 	// 	return err;
 	// }
 
-	// args->data_msg_buf = rt_queue_alloc(&args->msg_q_data, sizeof(spi_data_t));
-	// if(!args->data_msg_buf)
+	// args.data_msg_buf = rt_queue_alloc(&args.msg_q_data, sizeof(spi_data_t));
+	// if(!args.data_msg_buf)
 	// {
 	// 	rt_printf("Failed to allocate buffer for data msg\n");
 	// 	return 0;
 	// }
 
-	// args_imu->imu_data_msg_buf = rt_queue_alloc(&args_imu->msg_q_imu, sizeof(struct imu_data));
-	// if(!args_imu->imu_data_msg_buf)
+	// args_imu.imu_data_msg_buf = rt_queue_alloc(&args_imu.msg_q_imu, sizeof(struct imu_data));
+	// if(!args_imu.imu_data_msg_buf)
 	// {
 	// 	rt_printf("Failed to allocate buffer for imu msg\n");
 	// 	return 0;
 	// }
 	
-	// err = rt_task_start(&args->write_task, write_task_func, args);
+	// err = rt_task_start(&args.write_task, write_task_func, args);
 	// if (err) {
 	// 	rt_printf("Joint PD Controller (main): Failed to start rt task, code %d\n", err);
 	// 	return err;
 	// }
 
-	// err = rt_task_start(&args_imu->write_task, write_task_func_imu, args_imu);
+	// err = rt_task_start(&args_imu.write_task, write_task_func_imu, args_imu);
 	// if (err) {
 	// 	rt_printf("Joint PD Controller (main): Failed to start rt task, code %d\n", err);
 	// 	return err;
@@ -1242,12 +1361,12 @@ int main()
 	// 	return err;
 	// }
 
-	// err = pthread_mutex_init(&mutex, NULL);
-	// // err = rt_mutex_create(&mutex, "mutex_lock");
-	// if (err) {
-	// 	rt_printf("Joint PD Controller (main): Failed to init mutex lock %d\n", err);
-	// 	return err;
-	// }
+	err = pthread_mutex_init(&mutex, NULL);
+	// err = rt_mutex_create(&mutex, "mutex_lock");
+	if (err) {
+		rt_printf("Joint PD Controller (main): Failed to init mutex lock %d\n", err);
+		return err;
+	}
 
 
 	/* set sched policy*/
@@ -1263,13 +1382,13 @@ int main()
 
 	mlockall(MCL_CURRENT | MCL_FUTURE);
   
-	err = pthread_create(&motor_thread, NULL, write_task_func, args);
-	if (err) {
-		rt_printf("Joint PD Controller (main): Failed to start motor pthread, code %d\n", err);
-		return err;
-	}
+	// err = pthread_create(&motor_thread, NULL, write_task_func, &args);
+	// if (err) {
+	// 	rt_printf("Joint PD Controller (main): Failed to start motor pthread, code %d\n", err);
+	// 	return err;
+	// }
 
-	err = pthread_create(&imu_thread, NULL, write_task_func_imu, args_imu);
+	err = pthread_create(&imu_thread, NULL, write_task_func_imu, &args_imu);
 	if (err) {
 		rt_printf("Joint PD Controller (main): Failed to start imu pthread, code %d\n", err);
 		return err;
@@ -1280,55 +1399,82 @@ int main()
 	/*blocking call*/
 	rt_printf("Press any key + ENTER to exit\n");
 	getchar();
-	/*cleanup*/
+	/* exit the main loop*/
+	err = pthread_mutex_lock(&mutex);
+	if(err)
+	{
+		if(errno == EPERM)
+			rt_printf("[MAIN-RT-TASK] : Invalid context, failed to lock mutex\n");
+		else if (errno == EINVAL)
+			rt_printf("[MAIN-RT-TASK] : Invalid mutex, failed to lock\n");
+		else
+			rt_printf("[MAIN-RT-TASK] : Failed to acquire mutex\n");
 
-	// err = rt_task_delete(&args->write_task);
+	}
+	
+	rt_printf("[MAIN-RT-TASK] : Acquired mutex\n");
+	isRunning = 0;
+	err = pthread_mutex_unlock(&mutex);
+		if(err)
+		{
+			if(errno == EPERM)
+				rt_printf("[IMU-RT-TASK] : Invalid context, failed to unlock mutex\n");
+			else if (errno == EINVAL)
+				rt_printf("[IMU-RT-TASK] : Invalid mutex, failed to unlock\n");
+			else
+				rt_printf("[IMU-RT-TASK] : Failed to release mutex\n");
+
+		}
+	pthread_join(imu_thread, NULL);
+	pthread_join(motor_thread, NULL);
+
+	// err = rt_task_delete(&args.write_task);
 	// if (err) {
 	// 	rt_printf("Joint PD Controller (main): Failed to delete rt task, code %d\n", err);		
 	// 	return err;
 	// }
 
-	// err = rt_task_delete(&args_imu->write_task);
+	// err = rt_task_delete(&args_imu.write_task);
 	// if (err) {
 	// 	rt_printf("Joint PD Controller (main): Failed to delete imu rt task, code %d\n", err);		
 	// 	return err;
 	// }
-	mq_close(args->msg_q_data);
-	mq_close(args->msg_q_status);
-	mq_close(args->msg_q_cmd);
-	mq_close(args_imu->msg_q_imu);
+	mq_close(args.msg_q_data);
+	mq_close(args.msg_q_status);
+	mq_close(args.msg_q_cmd);
+	mq_close(args_imu.msg_q_imu);
 
 
-	// err = rt_queue_delete(&args->msg_q_data);
+	// err = rt_queue_delete(&args.msg_q_data);
 	// if (err) {
 	// 	rt_printf("Joint PD Controller (main): Failed to delete motor rt task msg_q_data, code %d\n", err);		
 	// 	return err;
 	// }
 
-	// err = rt_queue_delete(&args_imu->msg_q_imu);
+	// err = rt_queue_delete(&args_imu.msg_q_imu);
 	// if (err) {
 	// 	rt_printf("Joint PD Controller (main): Failed to delete rt task msg_q_imu, code %d\n", err);		
 	// 	return err;
 	// }
-	// err = rt_queue_delete(&args->msg_q_setpoints);
+	// err = rt_queue_delete(&args.msg_q_setpoints);
 	// if (err) {
 	// 	rt_printf("Joint PD Controller (main): Failed to delete rt task msg_q_setpoints, code %d\n", err);		
 	// 	return err;
 	// }
 	/*set all setpoints to zerro before exiting*/
-	memset(args->setpoints, 0 , sizeof(spi_command_t));
+	memset(&args.setpoints, 0 , sizeof(spi_command_t));
 	/* do control computations*/
-	control_comp(args);
+	control_comp(&args);
 	/* pack cmd*/
-	pack_torque_cmd(args);
-	for (int i = 0; i < 1; ++i)
+	pack_torque_cmd(&args);
+	for (int i = 0; i < 4; ++i)
 	{
-		for (int j = 0; j < 1; ++j)
+		for (int j = 0; j < 3; ++j)
 		{
 			switch(j)
 			{
 				case 0:		/*knee*/
-					err = pcanfd_send_msg(args->fd[i], &args->setpoint_msgs.knee_setpoints[i]);
+					err = pcanfd_send_msg(args.fd[i], &args.setpoint_msgs.knee_setpoints[i]);
 					if (err)
 					{
 						rt_printf("DANGER: Send msg failed because of errno %d, \n", err);		
@@ -1337,7 +1483,7 @@ int main()
 					}
 					break;
 				case 1:		/*hip*/
-					err = pcanfd_send_msg(args->fd[i], &args->setpoint_msgs.hip_setpoints[i]);
+					err = pcanfd_send_msg(args.fd[i], &args.setpoint_msgs.hip_setpoints[i]);
 					if (err)
 					{
 						rt_printf("DANGER: Send msg failed because of err=%d, \n", err);		
@@ -1346,7 +1492,7 @@ int main()
 					}
 					break;
 				case 2:		/*abad*/
-					err = pcanfd_send_msg(args->fd[i], &args->setpoint_msgs.abad_setpoints[i]);
+					err = pcanfd_send_msg(args.fd[i], &args.setpoint_msgs.abad_setpoints[i]);
 					if (err)
 					{
 						rt_printf("DANGER: Send msg failed because of err=%d, \n", err);	
@@ -1364,15 +1510,12 @@ int main()
 	/* switch off all motors*/
 	for (int i = 0; i < 4; ++i)
 	{
-		err = pcanfd_close(args->fd[i]);
+		err = pcanfd_close(args.fd[i]);
 		if (err != -1)
 			rt_printf("Joint PD Controller (main):Pcanfd close failed with err %d\n",err);
 	}
 
-	free(args->setpoints);
-	free(args);
-	free(args_imu);
-
+	
 	return 0;
 
 }
