@@ -5,10 +5,9 @@ CFLAGS=`pkg-config --cflags lcm`
 LDFLAGS=`pkg-config --libs lcm`
 
 # target = test
-skin_1 = alchemy
 skin_2 = posix
 CC := $(shell xeno-config --cc) 
-CFLAGS := $(shell xeno-config --skin=$(skin_2) --cflags) $(CFLAGS) -fno-stack-protector
+CFLAGS := $(shell xeno-config --skin=$(skin_2) --cflags) $(CFLAGS) 
 LDFLAGS := $(shell xeno-config --skin=$(skin_2) --ldflags) $(LDFLAGS) -lpcanfd -lm
 ifdef CAN_WRITE
 CFLAGS += -DCAN_WRITE 
@@ -23,9 +22,12 @@ endif
 # $(target): $(target).c
 # 	$(CC) -o $@ $< $(CFLAGS) $(LDFLAGS)
 
-all: joint_pd_control \
+all: motors_can \ imu_can
 
-joint_pd_control: spi_command_t.o spi_data_t.o joint_pd_control.o
+motors_can: spi_command_t.o spi_data_t.o motors_can.o
+	$(CC) -o $@ $^ $(LDFLAGS)
+
+imu_can: spi_command_t.o spi_data_t.o imu_can.o
 	$(CC) -o $@ $^ $(LDFLAGS)
 
 # prevent auto-generated lcm .c/.h files from being deleted
@@ -38,7 +40,6 @@ joint_pd_control: spi_command_t.o spi_data_t.o joint_pd_control.o
 	lcm-gen -c $<
 
 clean:
-	rm -f joint_pd_control
+	rm -f motors_can imu_can
 	rm -f *.o
 	rm -f spi_data_t.c spi_data_t.h spi_command_t.h spi_command_t.c
-	@rm $(target)
