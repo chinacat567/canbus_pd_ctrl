@@ -62,8 +62,13 @@ static void inc_period(struct period_info *pinfo)
 static void wait_rest_of_period(struct period_info *pinfo)
 {
   inc_period(pinfo);
+  int err;
   /* for simplicity, ignoring possibilities of signal wakes */
-  clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &pinfo->next_period, NULL);
+  err = clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &pinfo->next_period, NULL);
+  if(err)
+  {
+  	rt_printf("clock_nanosleep failed\n");
+  }
 }
 
 
@@ -233,6 +238,7 @@ void* write_task_func_imu(void * arg)
 					args->data.quat[3] = bytes_to_float(&args->res_msgs_imu[i].data[4]);
 				case 146:
 					args->data.gyro[0] = qToFloat(bytes_to_uint16(&args->res_msgs_imu[i].data[0]), 9);
+					args->data.gyro[1] = qToFloat(bytes_to_uint16(&args->res_msgs_imu[i].data[2]), 9);
 					args->data.gyro[2] = qToFloat(bytes_to_uint16(&args->res_msgs_imu[i].data[4]), 9);
 				case 143:
 					args->data.accel[0] = qToFloat(bytes_to_uint16(&args->res_msgs_imu[i].data[0]), 8);
@@ -453,6 +459,14 @@ int main()
 	pid_t id = gettid();
 	struct sched_param params;
 	params.sched_priority = 99;
+	/* set cpu*/
+	err =  sched_setaffinity(id, sizeof(cpu_set_t), &cpu_imu);
+	if (err)
+	{
+    	rt_printf("[Init] sched_setaffinity failed.\n");
+    	return 0;
+	}
+
 	err = sched_setscheduler(id, SCHED_FIFO, &params);
 	if (err)
 	{

@@ -3,6 +3,8 @@
 /* 29th March - mutex sharing between RT and non RT not possible. Use msg pipes instead*/
 /* 8th April - moved to pthreads (posix skin) from alchemy */
 /*12th April - moved imu task to seperate process*/
+/* 13th April - get rid of the damn estop for good, add canbus safety functions*/
+
 #include "motors_can.h"
 
 static void inc_period(struct period_info *pinfo)	
@@ -34,7 +36,7 @@ static void periodic_task_init(struct period_info *pinfo, long int setperiod)
 
 void print_spi_command(spi_command_t* msg)
 {
-	for (int i = 0; i < 1; ++i)
+	for (int i = 0; i < 4; ++i)
 	{
 		rt_printf("\n");
 		// rt_printf("Leg no. %d :\n", i);
@@ -66,7 +68,7 @@ void print_spi_command(spi_command_t* msg)
 
 void print_spi_data(spi_data_t* msg)
 {
-	for (int i = 0; i < 2; ++i)
+	for (int i = 0; i < 4; ++i)
 	{
 		rt_printf("\n");
 		rt_printf("Leg no. %d :\n", i);
@@ -89,7 +91,7 @@ void print_spi_data(spi_data_t* msg)
 
 void print_torq_data(struct motor_torq_cmd* msg)
 {
-	for (int i = 0; i < 1; ++i)
+	for (int i = 0; i < 4; ++i)
 	{
 		rt_printf("\n");
 		rt_printf("torq_knee[%d] = %f\n",i, msg->torq_setpoint_knee[i]);
@@ -638,6 +640,7 @@ void* write_task_func(void * arg)
 					}
 					else
 					{
+						rt_printf("[MOTOR-RT-TASK] : Failed to send msg, exiting task\n ");
 						return NULL;			
 
 					}
@@ -665,6 +668,7 @@ void* write_task_func(void * arg)
 					}
 					else
 					{
+						rt_printf("[MOTOR-RT-TASK] : Failed to send msg, exiting task\n ");
 						return NULL;	
 					}
 							
@@ -683,8 +687,8 @@ void* write_task_func(void * arg)
 				rt_printf("[MOTOR-RT-TASK] :Failed to get status, invalid fd. Exiting\n");
 				return NULL;
 			}
-			/* check for buss errors*/
-			if (state[i].tx_error_counter || state[i].rx_error_counter)
+			/* check for tx-bus errors, this ensures that the bus is still connected*/
+			if (state[i].tx_error_counter > 50)
 			{
 				rt_printf("[MOTOR-RT-TASK] : Tx/Rx errors detected on CANBUS port %d. Check BUS connection\n", i);
 				return NULL;
@@ -789,11 +793,12 @@ void* write_task_func(void * arg)
 						{
 							if(err == -EWOULDBLOCK)
 							{
-								rt_printf("[MOTOR-RT-TASK] :DANGER :Failed to write msg to CANBUS\n");
-								return NULL;
+								rt_printf("[MOTOR-RT-TASK] :DANGER :Failed to write msg to CANBUS, Tx Queue is full\n");
+						
 							}
 							else
 							{
+								rt_printf("[MOTOR-RT-TASK] : Failed to send msg, exiting task\n ");
 								return NULL;	
 							}
 									
@@ -806,11 +811,12 @@ void* write_task_func(void * arg)
 						{
 							if(err == -EWOULDBLOCK)
 							{
-								rt_printf("[MOTOR-RT-TASK] :DANGER :Failed to write msg to CANBUS\n");
-								return NULL;
+								rt_printf("[MOTOR-RT-TASK] :DANGER :Failed to write msg to CANBUS, Tx Queue is full\n");
+						
 							}
 							else
 							{
+								rt_printf("[MOTOR-RT-TASK] : Failed to send msg, exiting task\n ");
 								return NULL;
 							}
 										
@@ -824,12 +830,13 @@ void* write_task_func(void * arg)
 							if(err == -EWOULDBLOCK)
 							{
 				
-								rt_printf("[MOTOR-RT-TASK] :DANGER :Failed to write msg to CANBUS\n");
-								return NULL;
+								rt_printf("[MOTOR-RT-TASK] :DANGER :Failed to write msg to CANBUS, Tx Queue is full\n");
+							
 
 							}
 							else
 							{
+								rt_printf("[MOTOR-RT-TASK] : Failed to send msg, exiting task\n ");
 								return NULL;
 							}
 										
@@ -949,28 +956,37 @@ int main()
 	/* send some test msgs on the bus and check the bus state*/
 	for (int i = 0; i < 4; ++i)
 	{
-		err = pcanfd_send_msg(args.fd[i], &args.req_msgs_vel[i]);
-		if (err)
+		for (int j = 0; j < 3; ++j)
 		{
-			
-			if(err == -EWOULDBLOCK)
+			err = pcanfd_send_msg(args.fd[i], &args.req_msgs_vel[j]);
+			if (err)
 			{
-				rt_printf("[MOTOR-RT-TASK] : Main : Failed to send test msg on CANBUS, exiting\n", err);
-				return 0;		
-			}
-			else
-			{
-				return 0;
-			}
-
+				
+				if(err == -EWOULDBLOCK)
+				{
+					rt_printf("[MOTOR-RT-TASK] : Main : Failed to send test msg on CANBUS, exiting\n", err);
+					return 0;		
+				}
+				else
+				{
+					return 0;
+				}	
 			
-		
+			}
 		}
+		
 		
 	}
 	/*wait*/
-	usleep(1000);
+	usleep(10000);
 	/* check canbus state*/
+	int count = 0;
+	struct pcanfd_msg msg;
+	int knee_status[4], hip_status[4], abad_status[4];
+	memset(knee_status, 0 ,4*sizeof(int));
+	memset(hip_status, 0 ,4*sizeof(int));
+	memset(abad_status, 0 ,4*sizeof(int));
+
 	for (int i = 0; i < 4; ++i)
 	{
 		err = pcanfd_get_state(args.fd[i], &state[i]);
@@ -979,14 +995,78 @@ int main()
 			rt_printf("[MOTOR-RT-TASK] :Failed to get status, invalid fd. Exiting\n");
 			return 0;
 		}
-		if (state[i].tx_error_counter)
+		if (state[i].tx_error_counter || state[i].rx_error_counter)
 		{
 			rt_printf("[MOTOR-RT-TASK] : Tx errors detected on CANBUS port %d. Check BUS connection\n", i);
 			return 0;
 
 		}
-		
+
+		/* check which motors are online by reading responses*/
+		count = state[i].rx_pending_msgs;
+		for (int j = 0; j < count; ++j)
+		{
+			err = pcanfd_recv_msg(args.fd[i], &msg);
+			/* if msg queue is empty, break from the loop, else return*/
+			if (err)
+			{
+				if(err == -EWOULDBLOCK)
+				{
+					rt_printf("[MOTOR-RT-TASK] :DANGER : Read lesser msgs than avail. in q %d\n", err);	
+					break;
+				}
+				else
+				{
+					rt_printf("[MOTOR-RT-TASK] :DANGER : Recv msg failed because of error no. %d\n", err);	
+					return 0;
+				}
+			}
+			
+			else
+			{
+			 	if(msg.id == 0x141)
+			 	{
+			 		knee_status[i] = 1;
+
+			 	}	
+			 	if(msg.id == 0x142)
+			 	{
+			 		hip_status[i] = 1;
+			 	}
+			 	if(msg.id == 0x143)
+			 	{
+			 		abad_status[i] = 1;
+			 	}	
+			} 
+
+		}
+	
 	}
+	for (int i = 0; i < 4; ++i)
+	{
+		if(!knee_status[i])
+		{
+			rt_printf("Leg[%d] knee motor offline, exiting\n", i);
+			return 0;
+		}
+		if(!hip_status[i])
+		{
+			rt_printf("Leg[%d] hip motor offline, exiting\n", i);
+			return 0;
+
+		}
+		if(!abad_status[i])
+		{
+			rt_printf("Leg[%d] abad motor offline, exiting\n", i);
+			return 0;
+		}
+	}
+	rt_printf("Motor check succesful, all motors are online\n");
+
+	/* check if all the motors are online*/
+	/* read pending msgs*/
+	
+
 
 
 	/* open msg queus*/
@@ -1089,6 +1169,15 @@ int main()
 	pid_t id = gettid();
 	struct sched_param params;
 	params.sched_priority = 99;
+	/* set cpu*/
+	err =  sched_setaffinity(id, sizeof(cpu_set_t), &cpu_motors);
+	if (err)
+	{
+    	rt_printf("[Init] sched_setaffinity failed.\n");
+    	return 0;
+	}
+
+
 	err = sched_setscheduler(id, SCHED_FIFO, &params);
 	if (err)
 	{
